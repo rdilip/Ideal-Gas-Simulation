@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
+#include <signal.h>
 
 #define K_b 9.36E-18
 #define SIGMA 1
@@ -46,6 +47,8 @@ void die(idealGas *gas, const char *message) {
 	}
 	exit(1);
 }
+
+
 
 double resize(double p, double size) {
 	double temp = p;
@@ -128,9 +131,9 @@ double totEnergy(idealGas *gas) {
 	return (totEnergy / 2);
 }
 
-void saveGas(idealGas *gas) {
+void saveGas(idealGas *gas, const char *filename) {
 	int i;
-	FILE *f = fopen("config.txt", "w");
+	FILE *f = fopen(filename, "w");
 
 	for (i = 0; i < gas->n_molecules; i++) {
 		fprintf(f, "%f\t%f\t%f\n", gas->molecules[i].xpos,
@@ -230,7 +233,7 @@ int posUpdate(idealGas *gas, double temperature, double dr) {
 	return sum;
 }
 
-void simulate(idealGas *gas, double T, int num, int data_int, 
+void simulate(idealGas *gas, double T, int num, int data_int,
 	double dr, char mode) {
 	double energy;
 	int i;
@@ -263,7 +266,7 @@ int main(int argc, char *argv[]) {
 				die(helium, "Error opening file!\n");
 			}
 
-			saveGas(helium);
+			saveGas(helium, "config.txt");
 			break;
 
 		case 's':
@@ -288,11 +291,13 @@ int main(int argc, char *argv[]) {
 			}
 
 			helium = loadGas(config, TOT_MOLECULES);
+			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'c');	
-			saveGas(helium);	
+			saveGas(helium, "final_config.txt");	
 			break;
 
 		case 'd':
+
 			// Essentially the same as case s, but also prints
 			// out all the gas data each dat_int runs as well
 			if (argc != 7) {
@@ -313,8 +318,9 @@ int main(int argc, char *argv[]) {
 			}
 
 			helium = loadGas(config, TOT_MOLECULES);
+			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'd');	
-			saveGas(helium);	
+			saveGas(helium, "final_config.txt");	
 			break;
 
 		default:
@@ -322,10 +328,7 @@ int main(int argc, char *argv[]) {
 				"data collection, and configuration file\n");
 		}
 			
-
 	free(helium);
 
 	return 0;
 }
-	
-

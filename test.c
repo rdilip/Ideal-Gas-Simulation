@@ -31,9 +31,7 @@ double resize(double p, double size) {
 }
 double randdob(int min, int max); 
 int main(int argc, char *argv[]) {
-	double a[3] = {1,2,3};
-	double b[3] = {0,0,0};
-	printf("%f\n", distance(a, b, 1, 1));
+	foo(7);
 }
 
 double randdob(int min, int max)  {
