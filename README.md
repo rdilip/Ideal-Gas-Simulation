@@ -6,4 +6,6 @@ There are two implementations in here. One is a python implementation, which con
 
 For all practical purposes, I am updating idealGas.c as a main file, which creates a struct molecule and a struct idealGas, then proceeds from there. This is much faster and can handle many more molecules, which is highly beneficial. The algorithms are more or less the same. For this simulation, I implement periodic boundary conditions, and create a radius of inclusion given by half the size of the enclosing box. 
 
+Update 2015/6/2: The C code now accepts more values directly from the command line, several values are constants within the code itself. There are stilla few bugs which I am currently working on fixing. 
+
 If you have any questions, don't email me, just figure it out yourself. 

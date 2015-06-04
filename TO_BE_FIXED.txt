@@ -1,0 +1,11 @@
+PERIODIC BOUNDARY CONDITIONS
+	a) Particles that move over boundary need to reppear on other side
+	b) potential energy function needs to use the closest image within size/ 2
+
+INPUT SWITCH STATEMENT TO TOGGLE MODE
+NECESSARY MODES ARE 
+-c create random simulation
+-l load simulation from input textfile
+-d debugging mode, prints out gas state each time it collects data 
+
+Need to also accept number of simulations and interval at which to print simulation
