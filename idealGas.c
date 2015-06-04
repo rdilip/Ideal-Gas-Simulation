@@ -241,7 +241,7 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 		posUpdate(gas, T, dr);		
 		if (i % data_int == 0) {
 			energy = totEnergy(gas);	
-			printf("\n\nWrote %d energy: %f\n", i, energy);
+			printf("Wrote %d energy: %f\n", i, energy);
 			if (mode == 'd') printGas(gas);
 		}
 	}
