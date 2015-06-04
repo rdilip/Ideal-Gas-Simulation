@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+#include <errno.h>
 
 #define K_b 9.36E-18
 #define SIGMA 1
@@ -32,6 +33,18 @@ typedef struct idealGas {
 
 double randnum(double min, double max)  {
 	return(min + (max - min)*((double)rand() / RAND_MAX));
+}
+
+void die(idealGas *gas, const char *message) {
+	if (errno) {
+		perror(message);
+	} else {
+		printf("ERROR: %s\n", message);
+	}
+	if (gas) {
+		free(gas);
+	}
+	exit(1);
 }
 
 double resize(double p, double size) {
@@ -125,7 +138,7 @@ void saveGas(idealGas *gas) {
 	}
 }
 
-idealGas *loadGas(char *filename, int n_molecules) {
+idealGas *loadGas(const char *filename, int n_molecules) {
 	FILE *myfile;
 	myfile = fopen(filename, "r");
 
@@ -217,26 +230,28 @@ int posUpdate(idealGas *gas, double temperature, double dr) {
 	return sum;
 }
 
-
-double simulate(idealGas *gas, double temperature, double dr, int trials) {
-	int count = 0;
+void simulate(idealGas *gas, double T, int num, int data_int, 
+	double dr, char mode) {
+	double energy;
 	int i;
-	for (i = 0; i < trials; i++) {
-		count += posUpdate(gas, temperature, dr);
+	for (i = 0; i < num; i++) {
+		posUpdate(gas, T, dr);		
+		if (i % data_int == 0) {
+			energy = totEnergy(gas);	
+			printf("\n\nWrote %d energy: %f\n", i, energy);
+			if (mode == 'd') printGas(gas);
+		}
 	}
-	printf("Count of acceptance: %d\n", count);
-	printf("Number of individual trials: %d\n", trials * gas->n_molecules);
-	return (double)count / (trials * gas->n_molecules);
 }
 
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 	char action = argv[1][0];
-	int i;
 	idealGas *helium = NULL;
-	char *delta, *temp, *runs, *data_interval, *config;
-	double dr, T, energy1;
+	const char *config;
+	double dr, T;
 	int num, data_int;
+
 	switch(action) {
 		case 'c':
 			// Creates new random idealGas, writes positions to file
@@ -245,106 +260,69 @@ int main(int argc, char *argv[]) {
 			FILE *f1 = fopen("energy_vals1.txt", "w");
 
 			if (f1 == NULL) {
-				printf("Error opening file!\n");
-				exit(1);
+				die(helium, "Error opening file!\n");
 			}
+
 			saveGas(helium);
+			break;
 
 		case 's':
 			// simulates gas molecules given dr and temperature.
 			// Also requires number of runs, interval of data
 			// collection, and config file.
 			if (argc != 7) {
-				printf("ERROR: Need a dr, temperature, number of runs, interval of data collection, and configuration file.\n");
-				exit(1);
+				die(helium, "Case s:Need dr, temp, num runs,"
+					" interval of data collection, and"
+					" configuration file\n");
 			}
 
-			delta = argv[2];
-			dr = strtod(delta, NULL);
-			temp = argv[3];
-			T = strtod(temp, NULL);
-			runs = argv[4];
-			num = atoi(runs);
-			data_interval = argv[5];
-			data_int = atoi(data_interval);
+			dr = strtod(argv[2], NULL);
+			T = strtod(argv[3], NULL);
+			num = atoi(argv[4]);
+			data_int = atoi(argv[5]);
 			config = argv[6];
 
 			if (num < data_int) {
-				printf("ERROR: Data collection interval cannot"
+				die(helium, "ERROR: Data collection interval cannot"
 					"be greater than total runs\n");
-				exit(1);
 			}
-			helium = loadGas(config, TOT_MOLECULES);
 
-			for (i = 0; i < num; i++) {
-				posUpdate(helium, T, dr);		
-				if (i % data_int == 0){
-					energy1 = totEnergy(helium);	
-					printf("\n\nWrote %d energy: %f\n", i, energy1);
-				}
-			}
+			helium = loadGas(config, TOT_MOLECULES);
+			simulate(helium, T, num, data_int, dr, 'c');	
 			saveGas(helium);	
-			free(helium);
+			break;
+
 		case 'd':
 			// Essentially the same as case s, but also prints
 			// out all the gas data each dat_int runs as well
-
-			if (argc != 6) {
-				printf("ERROR: Need a dr, temperature, number"
-					"of runs, interval of data collection, and"
-					"configuration file.\n");
-				exit(1);
+			if (argc != 7) {
+				die(helium, "Case s:Need dr, temp, num runs,"
+					" interval of data collection, and"
+					" configuration file\n");
 			}
 
-			delta = argv[2];
-			dr = strtod(delta, NULL);
-			temp = argv[3];
-			T = strtod(temp, NULL);
-			runs = argv[4];
-			num = atoi(runs);
-			data_interval = argv[5];
-			data_int = atoi(data_interval);
+			dr = strtod(argv[2], NULL);
+			T = strtod(argv[3], NULL);
+			num = atoi(argv[4]);
+			data_int = atoi(argv[5]);
 			config = argv[6];
 
 			if (num < data_int) {
-				printf("ERROR: Data collection interval cannot be"
-					"greater than total runs\n");
-				exit(1);
+				die(helium, "ERROR: Data collection interval cannot"
+					"be greater than total runs\n");
 			}
 
 			helium = loadGas(config, TOT_MOLECULES);
-
-			for (i = 0; i < num; i++) {
-				posUpdate(helium, T, dr);		
-				if (i % data_int == 0){
-					energy1 = totEnergy(helium);	
-					printf("\n\nWrote %d energy: %f\n", i, energy1);
-					printGas(helium);
-				}
-			}
-			saveGas(helium);
-			free(helium);
+			simulate(helium, T, num, data_int, dr, 'd');	
+			saveGas(helium);	
+			break;
 
 		default:
-			printf("ERROR: Need more data.\n");
-			exit(1);
+			die(helium, "Defualt: Need dr, temp, num runs, interval of "
+				"data collection, and configuration file\n");
 		}
 			
 
-// Need to make simulations method 
-/*
-	double accept = simulate(helium1, 300, dr, 100);
-	printf("Acceptance: %f\n", accept);
-	for (i = 0; i < 2500; i++) {
-		posUpdate(helium1, 300, 1);
-		if (i % 500 == 0) {
-			energy1 = totEnergy(helium1);
-			printf("\n\nWrote %d energy\n", i);
-			printGas(helium1);
-		}
-	}
-	*/
-	
 	free(helium);
 
 	return 0;
