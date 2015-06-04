@@ -162,7 +162,7 @@ idealGas *loadGas(const char *filename, int n_molecules) {
 }
 
 void printMolecule(molecule mol) {
-	printf("(%.15f, %.15f, %.15f)\n", mol.xpos, mol.ypos, mol.zpos);	
+	printf("(%.4f, %.4f, %.4f)\n", mol.xpos, mol.ypos, mol.zpos);	
 }
 
 void printGas(idealGas *gas) {
@@ -240,9 +240,9 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 	for (i = 0; i < num; i++) {
 		posUpdate(gas, T, dr);		
 		if (i % data_int == 0) {
-			energy = totEnergy(gas);	
-			printf("Wrote %d energy: %f\n", i, energy);
 			if (mode == 'd') printGas(gas);
+			energy = totEnergy(gas);	
+			printf("\nWrote %d energy: %f\n", i, energy);
 		}
 	}
 }
