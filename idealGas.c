@@ -89,20 +89,20 @@ double distance(idealGas *gas, int i, int j) {
 	return distance;
 }
 
-idealGas *create_gas(double size, int n_molecules) {
+idealGas *create_gas(double size) {
 	int i;
 	double x, y, z;
 	srand(time(NULL));
 	idealGas *gas = malloc(sizeof(idealGas));
 
-	for (i = 0; i < n_molecules; i++) {
+	for (i = 0; i < TOT_MOLECULES; i++) {
 		x = size * ((double)rand() / RAND_MAX);
 		y = size * ((double)rand() / RAND_MAX);
 		z = size * ((double)rand() / RAND_MAX);
 		molecule mol = {.xpos = x, .ypos = y, .zpos = z, .pos = {x, y, z}};
 		gas->molecules[i] = mol;
 	}
-	gas->n_molecules = n_molecules;
+	gas->n_molecules = TOT_MOLECULES;
 
 	return (gas);
 }
@@ -112,7 +112,7 @@ double potEnergy(idealGas *gas, int k, double size) {
 	int i;
 	double r_ki;
 	double A;
-	for (i = 0; i < gas->n_molecules; i++) {
+	for (i = 0; i < TOT_MOLECULES; i++) {
 		if (i != k) {
 			r_ki = distance(gas, i, k);	
 			A = SIGMA / r_ki;
@@ -125,7 +125,7 @@ double potEnergy(idealGas *gas, int k, double size) {
 double totEnergy(idealGas *gas) {
 	double totEnergy = 0;
 	int i;
-	for (i = 0; i < gas->n_molecules; i++) {
+	for (i = 0; i < TOT_MOLECULES; i++) {
 		totEnergy += potEnergy(gas, i, gas->size);
 	}
 	return (totEnergy / 2);
@@ -135,13 +135,15 @@ void saveGas(idealGas *gas, const char *filename) {
 	int i;
 	FILE *f = fopen(filename, "w");
 
-	for (i = 0; i < gas->n_molecules; i++) {
+	for (i = 0; i < TOT_MOLECULES; i++) {
 		fprintf(f, "%f\t%f\t%f\n", gas->molecules[i].xpos,
 			gas->molecules[i].ypos, gas->molecules[i].zpos);
 	}
+	fflush(f);
+	fclose(f);
 }
 
-idealGas *loadGas(const char *filename, int n_molecules) {
+idealGas *loadGas(const char *filename) {
 	FILE *myfile;
 	myfile = fopen(filename, "r");
 
@@ -149,7 +151,7 @@ idealGas *loadGas(const char *filename, int n_molecules) {
 	int i;
 	idealGas *gas = malloc(sizeof(idealGas));
 
-	for (i = 0; i < 3 * n_molecules; i++) {
+	for (i = 0; i < 3 * TOT_MOLECULES; i++) {
 			fscanf(myfile, "%lf", &x);
 			fscanf(myfile, "%lf", &y);
 			fscanf(myfile, "%lf", &z);
@@ -157,7 +159,8 @@ idealGas *loadGas(const char *filename, int n_molecules) {
 			gas->molecules[i] = mol;
 	}
 
-	gas->n_molecules = n_molecules;
+	gas->n_molecules = TOT_MOLECULES;
+	fclose(myfile);
 	return gas;
 }
 
@@ -167,17 +170,17 @@ void printMolecule(molecule mol) {
 
 void printGas(idealGas *gas) {
 	int i;
-	for (i = 0; i < gas->n_molecules; i++) {
+	for (i = 0; i < TOT_MOLECULES; i++) {
 		printMolecule(gas->molecules[i]);
 	}
 }
 
-void posChange(idealGas *gas, double temperature, int i, double dr, 
-	int *changes) {
+int posChange(idealGas *gas, double temperature, int i, double dr) {
 	double U_i;
 	double U_f;
 	double dx, dy, dz;
 	double x_i, y_i, z_i;
+	int res = 0;
 
 	dx = randnum(-1.0*dr, dr);
 	dy = randnum(-1.0*dr, dr);
@@ -200,35 +203,27 @@ void posChange(idealGas *gas, double temperature, int i, double dr,
 	U_f = totEnergy(gas);
 
 	if (U_f - U_i < 0) {
-		*(changes + i) = *(changes + i) + 1;
+		res = 1;
 	} else {
 		double prob = exp((-1.0 * (U_f - U_i) / K_b * temperature));
 		if (randnum(0, 1) < prob) {
-			*(changes + i) = *(changes + i) + 1;
+			res = 1;
 		} else {
 			molecule mol1 = {.xpos = x_i, .ypos = y_i, .zpos = z_i, 
 				.pos = {x_i, y_i, z_i}};
 			gas->molecules[i] = mol1;
 		}
 	}
+	return res;
 }
 
 int posUpdate(idealGas *gas, double temperature, double dr) {
-	int changes[gas->n_molecules];
 
 	int i;
-	for (i = 0; i < gas->n_molecules; i++) {
-		changes[i] = 0;
-	}
-
 	int sum = 0;
 
-	for (i = 0; i < gas->n_molecules; i++) {
-		posChange(gas, temperature, i, dr, changes);
-	}
-
-	for (i = 0; i < gas->n_molecules; i++) {
-		sum += changes[i];
+	for (i = 0; i < TOT_MOLECULES; i++) {
+		sum += posChange(gas, temperature, i, dr);
 	}
 	return sum;
 }
@@ -243,8 +238,40 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 			if (mode == 'd') printGas(gas);
 			energy = totEnergy(gas);	
 			printf("\nWrote %d energy: %f\n", i, energy);
+			saveGas(gas, "final_config.txt");
 		}
 	}
+}
+
+double findAcceptanceRate(const char *config, double T, double dr, int num) {
+	int count = 0;
+	int i;
+	idealGas *gas = loadGas(config);
+	for (i = 0; i < num; i++) {
+		count += posUpdate(gas, T, dr);
+	}
+
+	printf("%d\n", count);
+	return ((double)count / (double)(num * TOT_MOLECULES));
+}
+
+void equilibriate(const char *config, double Ti, double Tf, double dr) {
+	double T2 = 0.66 * (Ti - Tf) + Ti;
+	double T3 = 0.33 * (Ti - Tf) + Ti;
+	idealGas *gas = loadGas(config);	
+	int i;
+	for (i = 0; i < 10000; i++) {
+		posUpdate(gas, Ti, dr);
+	}
+	saveGas(gas, "final_config.txt");
+	for (i = 0; i < 10000; i++) {
+		posUpdate(gas, T2, dr);
+	}
+	saveGas(gas, "final_config.txt");
+	for (i = 0; i < 10000; i++) {
+		posUpdate(gas, T3, dr);
+	}
+	saveGas(gas, "final_config.txt");
 }
 
 int main(int argc, char *argv[]) {
@@ -252,14 +279,14 @@ int main(int argc, char *argv[]) {
 	char action = argv[1][0];
 	idealGas *helium = NULL;
 	const char *config;
-	double dr, T;
+	double dr, T, Ti, Tf;
 	int num, data_int;
 
 	switch(action) {
 		case 'c':
 			// Creates new random idealGas, writes positions to file
 			// config.txt
-			helium = create_gas(SIZE, TOT_MOLECULES); 
+			helium = create_gas(SIZE); 
 			FILE *f1 = fopen("energy_vals1.txt", "w");
 
 			if (f1 == NULL) {
@@ -267,14 +294,38 @@ int main(int argc, char *argv[]) {
 			}
 
 			saveGas(helium, "config.txt");
+			fclose(f1);
 			break;
+		case 'e':
+			// Equilibriates gas
+			if (argc != 6) {die(helium, "Need dr, Ti, Tf, and configuration"
+				" file to equilibriate");}
 
+			dr = strtod(argv[2], NULL);
+			Ti = strtod(argv[3], NULL);
+			Tf = strtod(argv[4], NULL);
+			config = argv[5];
+
+			equilibriate(config, Ti, Tf, dr);
+			break;
+		case 'a':
+			// Finds acceptance ratio. Should be preceded by equilibriation
+			if (argc != 6) {die(helium, "Need temperature, dr, number of "
+				"trials, and configuration file to find acceptance rate");}
+
+			T = strtod(argv[2], NULL);
+			dr = strtod(argv[3], NULL);
+			num = atoi(argv[4]);
+			config = argv[5];
+			printf("Acceptance rate: %f%%\n", 100 * \
+				findAcceptanceRate(config, T,dr, num));
+			break;
 		case 's':
 			// simulates gas molecules given dr and temperature.
 			// Also requires number of runs, interval of data
 			// collection, and config file.
 			if (argc != 7) {
-				die(helium, "Case s:Need dr, temp, num runs,"
+				die(helium, "Need dr, temp, num runs,"
 					" interval of data collection, and"
 					" configuration file\n");
 			}
@@ -286,11 +337,11 @@ int main(int argc, char *argv[]) {
 			config = argv[6];
 
 			if (num < data_int) {
-				die(helium, "ERROR: Data collection interval cannot"
+				die(helium, "Data collection interval cannot"
 					"be greater than total runs\n");
 			}
 
-			helium = loadGas(config, TOT_MOLECULES);
+			helium = loadGas(config);
 			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'c');	
 			saveGas(helium, "final_config.txt");	
@@ -301,7 +352,7 @@ int main(int argc, char *argv[]) {
 			// Essentially the same as case s, but also prints
 			// out all the gas data each dat_int runs as well
 			if (argc != 7) {
-				die(helium, "Case s:Need dr, temp, num runs,"
+				die(helium, "Need dr, temp, num runs,"
 					" interval of data collection, and"
 					" configuration file\n");
 			}
@@ -317,14 +368,14 @@ int main(int argc, char *argv[]) {
 					"be greater than total runs\n");
 			}
 
-			helium = loadGas(config, TOT_MOLECULES);
+			helium = loadGas(config);
 			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'd');	
 			saveGas(helium, "final_config.txt");	
 			break;
 
 		default:
-			die(helium, "Defualt: Need dr, temp, num runs, interval of "
+			die(helium, "Need dr, temp, num runs, interval of "
 				"data collection, and configuration file\n");
 		}
 			

@@ -1,0 +1,1 @@
+Adjust for either using n_molecules or TOT_MOLECULES. Not both
