@@ -237,7 +237,7 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 		if (i % data_int == 0) {
 			if (mode == 'd') printGas(gas);
 			energy = totEnergy(gas);	
-			printf("\nWrote %d energy: %f\n", i, energy);
+			printf("Wrote %d energy: %f\n", i, energy);
 			saveGas(gas, "final_config.txt");
 		}
 	}
