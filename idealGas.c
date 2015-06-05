@@ -62,11 +62,8 @@ double resize(double p, double size) {
 }
 
 double horDist(double x1, double x2, double l) {
-	double x_t = x2;
-	if (fabs(x1 - x2) > l / 2) {
-		x_t = x_t - l;
-	}
-	return (x1 - x_t);
+	double x12 = x2 - x1;
+	return (x12 - l * round(x12/l));
 }
 
 
@@ -231,6 +228,7 @@ int posUpdate(idealGas *gas, double temperature, double dr) {
 void simulate(idealGas *gas, double T, int num, int data_int,
 	double dr, char mode) {
 	double energy;
+	FILE *f = fopen("energy.txt", "w");
 	int i;
 	for (i = 0; i < num; i++) {
 		posUpdate(gas, T, dr);		
@@ -238,9 +236,12 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 			if (mode == 'd') printGas(gas);
 			energy = totEnergy(gas);	
 			printf("Wrote %d energy: %f\n", i, energy);
+			fprintf(f, "%f\n", energy);
+			fflush(f);
 			saveGas(gas, "final_config.txt");
 		}
 	}
+	fclose(f);
 }
 
 double findAcceptanceRate(const char *config, double T, double dr, int num) {
@@ -258,17 +259,18 @@ double findAcceptanceRate(const char *config, double T, double dr, int num) {
 void equilibriate(const char *config, double Ti, double Tf, double dr) {
 	double T2 = 0.66 * (Ti - Tf) + Ti;
 	double T3 = 0.33 * (Ti - Tf) + Ti;
+	int trials = 3000;
 	idealGas *gas = loadGas(config);	
 	int i;
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < trials; i++) {
 		posUpdate(gas, Ti, dr);
 	}
 	saveGas(gas, "final_config.txt");
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T2, dr);
 	}
 	saveGas(gas, "final_config.txt");
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T3, dr);
 	}
 	saveGas(gas, "final_config.txt");

@@ -31,7 +31,7 @@ double resize(double p, double size) {
 }
 double randdob(int min, int max); 
 int main(int argc, char *argv[]) {
-	foo(7);
+	printf("%f %f %f %f %f\n", round(10.2), round(5.43), round(5.49), round(6.51), round(11.21));
 }
 
 double randdob(int min, int max)  {
