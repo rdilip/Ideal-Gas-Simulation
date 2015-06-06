@@ -252,7 +252,7 @@ double findAcceptanceRate(const char *config, double T, double dr, int num) {
 		count += posUpdate(gas, T, dr);
 	}
 
-	printf("%d\n", count);
+	printf("%d\a\n", count);
 	return ((double)count / (double)(num * TOT_MOLECULES));
 }
 
@@ -265,23 +265,23 @@ void equilibriate(const char *config, double Ti, double Tf, double dr) {
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, Ti, dr);
 	}
-	printf("Ran with temperature %.5f K\n", Ti);
+	printf("Ran with temperature %.5f K\a\n", Ti);
 	saveGas(gas, "final_config.txt");
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T2, dr);
 	}
-	printf("Ran with temperature %.5f K\n", T2);
+	printf("Ran with temperature %.5f K\a\n", T2);
 	saveGas(gas, "final_config.txt");
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T3, dr);
 	}
-	printf("Ran with temperature %.5f K\n", T3);
+	printf("Ran with temperature %.5f K\a\n", T3);
 
 	saveGas(gas, "final_config.txt");
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, Tf, dr);
 	}
-	printf("Ran with temperature %.5f K\n", Tf);
+	printf("Ran with temperature %.5f K\a\n", Tf);
 
 	saveGas(gas, "final_config.txt");
 
@@ -358,6 +358,7 @@ int main(int argc, char *argv[]) {
 			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'c');	
 			saveGas(helium, "final_config.txt");	
+			printf("\a\a\a\a");
 			break;
 
 		case 'd':
@@ -385,6 +386,7 @@ int main(int argc, char *argv[]) {
 			saveGas(helium, "config.txt");
 			simulate(helium, T, num, data_int, dr, 'd');	
 			saveGas(helium, "final_config.txt");	
+			printf("\a\a\a\a");
 			break;
 
 		default:
