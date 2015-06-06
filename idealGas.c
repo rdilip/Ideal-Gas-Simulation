@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <signal.h>
 
-#define K_b 9.36E-18
+#define K_b 0.0026994
 #define SIGMA 1
 #define EPSILON 1
 #define E 4
@@ -113,7 +113,7 @@ double potEnergy(idealGas *gas, int k, double size) {
 		if (i != k) {
 			r_ki = distance(gas, i, k);	
 			A = SIGMA / r_ki;
-			potEnergy += E * (pow(A, 6) - pow(A, 3));
+			potEnergy += E * (pow(A, 6) - 2 * pow(A, 3));
 		}
 	}
 	return potEnergy;
@@ -257,23 +257,34 @@ double findAcceptanceRate(const char *config, double T, double dr, int num) {
 }
 
 void equilibriate(const char *config, double Ti, double Tf, double dr) {
-	double T2 = 0.66 * (Ti - Tf) + Ti;
-	double T3 = 0.33 * (Ti - Tf) + Ti;
+	double T2 = 0.66 * (Ti - Tf) + Tf;
+	double T3 = 0.33 * (Ti - Tf) + Tf;
 	int trials = 3000;
 	idealGas *gas = loadGas(config);	
 	int i;
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, Ti, dr);
 	}
+	printf("Ran with temperature %.5f K\n", Ti);
 	saveGas(gas, "final_config.txt");
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T2, dr);
 	}
+	printf("Ran with temperature %.5f K\n", T2);
 	saveGas(gas, "final_config.txt");
 	for (i = 0; i < trials; i++) {
 		posUpdate(gas, T3, dr);
 	}
+	printf("Ran with temperature %.5f K\n", T3);
+
 	saveGas(gas, "final_config.txt");
+	for (i = 0; i < trials; i++) {
+		posUpdate(gas, Tf, dr);
+	}
+	printf("Ran with temperature %.5f K\n", Tf);
+
+	saveGas(gas, "final_config.txt");
+
 }
 
 int main(int argc, char *argv[]) {
