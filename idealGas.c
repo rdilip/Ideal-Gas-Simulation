@@ -5,12 +5,11 @@
 #include <errno.h>
 #include <signal.h>
 
-#define K_b 0.0026994
-#define SIGMA 1
-#define EPSILON 1
-#define E 4
+#define K_b 8.617E-5
+#define SIGMA 3.82
+#define EPSILON 0.37427
 #define TOT_MOLECULES 50
-#define SIZE 15
+#define SIZE 127
 
 void arrPrint(int *ptr, int len);
 typedef struct location {
@@ -103,30 +102,40 @@ idealGas *create_gas(double size) {
 
 	return (gas);
 }
-
-double potEnergy(idealGas *gas, int k, double size) {
+/*
+double potEnergy(idealGas *gas, int k, int start) {
 	double potEnergy = 0;
 	int i;
 	double r_ki;
 	double A;
-	for (i = 0; i < TOT_MOLECULES; i++) {
+	for (i = start; i < TOT_MOLECULES; i++) {
 		if (i != k) {
 			r_ki = distance(gas, i, k);	
-			A = SIGMA / r_ki;
-			potEnergy += E * (pow(A, 6) - 2 * pow(A, 3));
+			A = pow(SIGMA / r_ki, 2);
+			potEnergy += EPSILON * (pow(A, 6) - 2 * pow(A, 3));
 		}
 	}
 	return potEnergy;
 }
+*/
 
 double totEnergy(idealGas *gas) {
 	double totEnergy = 0;
-	int i;
-	for (i = 0; i < TOT_MOLECULES; i++) {
-		totEnergy += potEnergy(gas, i, gas->size);
+	int i, j;
+	double r_ij;
+	double A;
+	double temp;
+	for (i = 0; i < TOT_MOLECULES - 1; i++) {
+		for (j = i+1; j < TOT_MOLECULES; j++) {
+			r_ij = distance(gas, i, j);		
+			A = pow(SIGMA / r_ij, 2); 
+			temp = EPSILON * (pow(A, 6) - 2*pow(A, 3));
+			totEnergy += temp;	
+		}
 	}
-	return (totEnergy / 2);
+	return totEnergy;
 }
+	
 
 void saveGas(idealGas *gas, const char *filename) {
 	int i;
@@ -191,7 +200,7 @@ int posChange(idealGas *gas, double temperature, int i, double dr) {
 	molecule mol = {.xpos = resize(x_i + dx, SIZE),\
 		.ypos = resize(y_i + dy , SIZE),\
 		.zpos = resize(z_i + dz , SIZE),\
-		.pos = {resize(x_i + dx, 10),
+		.pos = {resize(x_i + dx, SIZE),
 				resize(y_i + dy, SIZE),
 				resize(z_i + dz , SIZE)}};
 
@@ -235,8 +244,8 @@ void simulate(idealGas *gas, double T, int num, int data_int,
 		if (i % data_int == 0) {
 			if (mode == 'd') printGas(gas);
 			energy = totEnergy(gas);	
-			printf("Wrote %d energy: %f\n", i, energy);
-			fprintf(f, "%f\n", energy);
+			printf("Wrote %d energy: %.20f\n", i, energy);
+			fprintf(f, "%.20f\n", energy);
 			fflush(f);
 			saveGas(gas, "final_config.txt");
 		}
